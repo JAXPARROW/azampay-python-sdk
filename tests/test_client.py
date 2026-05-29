@@ -3,9 +3,9 @@ import respx
 from httpx import Response
 
 from azampay import AzamPay, AzamPayError, AuthenticationError, ForbiddenError, NotFoundError, RateLimitError, ServerError, ValidationError
-from tests.conftest import MOCK_TOKEN, SANDBOX_BASE
+from tests.conftest import MOCK_TOKEN, SANDBOX_AUTH, SANDBOX_BASE
 
-AUTH_URL = f"{SANDBOX_BASE}/AppRegistration/GenerateToken"
+AUTH_URL = f"{SANDBOX_AUTH}/AppRegistration/GenerateToken"
 CHECKOUT_URL = f"{SANDBOX_BASE}/azampay/mno/checkout"
 
 

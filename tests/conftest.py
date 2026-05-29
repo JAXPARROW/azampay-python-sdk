@@ -3,6 +3,7 @@ import pytest
 from azampay import AsyncAzamPay, AzamPay
 
 SANDBOX_BASE = "https://sandbox.azampay.co.tz"
+SANDBOX_AUTH = "https://authenticator-sandbox.azampay.co.tz"
 MOCK_TOKEN = "Bearer mock_token_123"
 
 

@@ -18,6 +18,7 @@ from .exceptions import (
 from .security import SecurityManager
 
 _SANDBOX_BASE = "https://sandbox.azampay.co.tz"
+_SANDBOX_AUTH = "https://authenticator-sandbox.azampay.co.tz"
 _PRODUCTION_AUTH = "https://authenticator.azampay.co.tz"
 _PRODUCTION_API = "https://api.azampay.co.tz"
 _AUTH_PATH = "/AppRegistration/GenerateToken"
@@ -58,6 +59,7 @@ class AzamPayClient:
         sandbox: bool = False,
         timeout: float = 30.0,
         max_retries: int = 3,
+        token: str | None = None,
     ) -> None:
         self.app_name = app_name
         self.client_id = client_id
@@ -67,11 +69,12 @@ class AzamPayClient:
         self.timeout = timeout
         self.max_retries = max_retries
 
-        self._auth_url = _SANDBOX_BASE if sandbox else _PRODUCTION_AUTH
+        self._auth_url = _SANDBOX_AUTH if sandbox else _PRODUCTION_AUTH
         self.base_url = _SANDBOX_BASE if sandbox else _PRODUCTION_API
 
-        self._token: str | None = None
-        self._token_expires_at: float = 0.0
+        # Accept a pre-issued bearer token (e.g. from the developer portal)
+        self._token: str | None = f"Bearer {token}" if token else None
+        self._token_expires_at: float = time.monotonic() + _TOKEN_TTL if token else 0.0
         self._lock = threading.Lock()
         self._http = httpx.Client(timeout=timeout)
 

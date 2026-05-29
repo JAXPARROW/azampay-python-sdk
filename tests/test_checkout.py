@@ -5,9 +5,9 @@ import respx
 from httpx import Response
 
 from azampay import AzamPay, ValidationError
-from tests.conftest import SANDBOX_BASE
+from tests.conftest import SANDBOX_AUTH, SANDBOX_BASE
 
-AUTH_URL = f"{SANDBOX_BASE}/AppRegistration/GenerateToken"
+AUTH_URL = f"{SANDBOX_AUTH}/AppRegistration/GenerateToken"
 MNO_URL = f"{SANDBOX_BASE}/azampay/mno/checkout"
 BANK_URL = f"{SANDBOX_BASE}/azampay/bank/checkout"
 

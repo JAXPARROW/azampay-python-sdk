@@ -5,9 +5,9 @@ import respx
 from httpx import Response
 
 from azampay import AzamPay
-from tests.conftest import SANDBOX_BASE
+from tests.conftest import SANDBOX_AUTH, SANDBOX_BASE
 
-AUTH_URL = f"{SANDBOX_BASE}/AppRegistration/GenerateToken"
+AUTH_URL = f"{SANDBOX_AUTH}/AppRegistration/GenerateToken"
 LIST_URL = f"{SANDBOX_BASE}/azampay/api/v1/Partner/GetPaymentLinks"
 CREATE_URL = f"{SANDBOX_BASE}/azampay/api/v1/Partner/CreatePaymentLink"
 PAYMENTS_URL = f"{SANDBOX_BASE}/azampay/api/v1/Partner/GetLinkPayments"
