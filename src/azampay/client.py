@@ -19,8 +19,10 @@ from .security import SecurityManager
 
 _SANDBOX_BASE = "https://sandbox.azampay.co.tz"
 _SANDBOX_AUTH = "https://authenticator-sandbox.azampay.co.tz"
+_SANDBOX_DISBURSE = "https://api-disbursement-sandbox.azampay.co.tz"
 _PRODUCTION_AUTH = "https://authenticator.azampay.co.tz"
 _PRODUCTION_API = "https://api.azampay.co.tz"
+_PRODUCTION_DISBURSE = "https://api-disbursement.azampay.co.tz"
 _AUTH_PATH = "/AppRegistration/GenerateToken"
 _TOKEN_TTL = 82800  # 23 hours (API TTL is 24 hours)
 _RETRY_STATUSES = {500, 502, 503, 504}
@@ -71,6 +73,7 @@ class AzamPayClient:
 
         self._auth_url = _SANDBOX_AUTH if sandbox else _PRODUCTION_AUTH
         self.base_url = _SANDBOX_BASE if sandbox else _PRODUCTION_API
+        self.disburse_url = _SANDBOX_DISBURSE if sandbox else _PRODUCTION_DISBURSE
 
         # Accept a pre-issued bearer token (e.g. from the developer portal)
         self._token: str | None = f"Bearer {token}" if token else None
@@ -155,6 +158,8 @@ class AzamPayClient:
         endpoint: str,
         json: dict[str, Any] | None = None,
         params: dict[str, Any] | None = None,
+        base_url: str | None = None,
+        skip_checksum: bool = False,
     ) -> Any:
         token = self._authenticate()
         headers: dict[str, str] = {"Authorization": token}
@@ -164,11 +169,11 @@ class AzamPayClient:
         payload: dict[str, Any] | None = None
         if json is not None:
             payload = dict(json)
-            if method.upper() in {"POST", "PUT", "PATCH"} and self.x_api_key:
+            if not skip_checksum and method.upper() in {"POST", "PUT", "PATCH"} and self.x_api_key:
                 if "checksum" not in payload:
                     payload["checksum"] = SecurityManager.create_checksum(self.x_api_key, payload)
 
-        url = f"{self.base_url}/{endpoint.lstrip('/')}"
+        url = f"{base_url or self.base_url}/{endpoint.lstrip('/')}"
         last_exc: Exception | None = None
 
         for attempt in range(1, self.max_retries + 1):

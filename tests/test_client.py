@@ -3,7 +3,7 @@ import respx
 from httpx import Response
 
 from azampay import AzamPay, AzamPayError, AuthenticationError, ForbiddenError, NotFoundError, RateLimitError, ServerError, ValidationError
-from tests.conftest import MOCK_TOKEN, SANDBOX_AUTH, SANDBOX_BASE
+from tests.conftest import MOCK_TOKEN, SANDBOX_AUTH, SANDBOX_BASE, SANDBOX_DISBURSE
 
 AUTH_URL = f"{SANDBOX_AUTH}/AppRegistration/GenerateToken"
 CHECKOUT_URL = f"{SANDBOX_BASE}/azampay/mno/checkout"
@@ -67,7 +67,7 @@ def test_raises_validation_error_on_400(client: AzamPay) -> None:
 @respx.mock
 def test_raises_not_found_error_on_404(client: AzamPay) -> None:
     respx.post(AUTH_URL).mock(return_value=_auth_response())
-    status_url = f"{SANDBOX_BASE}/azampay/api/v1/Partner/TransactionStatus"
+    status_url = f"{SANDBOX_DISBURSE}/api/v1/azampay/transactionstatus"
     respx.get(status_url).mock(return_value=Response(404, json={"message": "Not found"}))
 
     with pytest.raises(NotFoundError):

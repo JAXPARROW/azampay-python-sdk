@@ -5,10 +5,10 @@ import respx
 from httpx import Response
 
 from azampay import AzamPay
-from tests.conftest import SANDBOX_AUTH, SANDBOX_BASE
+from tests.conftest import SANDBOX_AUTH, SANDBOX_BASE, SANDBOX_DISBURSE
 
 AUTH_URL = f"{SANDBOX_AUTH}/AppRegistration/GenerateToken"
-DISBURSE_URL = f"{SANDBOX_BASE}/azampay/api/v1/Partner/PostDisburse"
+DISBURSE_URL = f"{SANDBOX_DISBURSE}/api/v1/azampay/disburse"
 
 
 def _auth_ok() -> Response:
@@ -94,12 +94,13 @@ def test_disburse_bank_convenience(client: AzamPay) -> None:
 
 
 @respx.mock
-def test_disburse_checksum_injected(client: AzamPay) -> None:
+def test_disburse_does_not_inject_hmac_checksum(client: AzamPay) -> None:
+    # Disbursement uses RSA+SHA512 checksum (provided by AzamPay), not HMAC-SHA256.
+    # The SDK skips HMAC injection for disbursement requests.
     respx.post(AUTH_URL).mock(return_value=_auth_ok())
     mock = respx.post(DISBURSE_URL).mock(return_value=_disburse_ok())
 
     client.disbursement.disburse_mobile("Charlie", "0741222222", "Tigo", "500")
 
     body = json.loads(mock.calls[0].request.content)
-    assert "checksum" in body
-    assert len(body["checksum"]) == 64
+    assert "checksum" not in body

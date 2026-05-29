@@ -6,7 +6,7 @@ if TYPE_CHECKING:
     from ..async_client import AsyncAzamPayClient
     from ..client import AzamPayClient
 
-_DISBURSE_PATH = "/azampay/api/v1/Partner/PostDisburse"
+_DISBURSE_PATH = "/api/v1/azampay/disburse"
 
 
 class DisbursementService:
@@ -56,7 +56,9 @@ class DisbursementService:
             payload["referenceId"] = reference_id
         if remarks:
             payload["remarks"] = remarks
-        return self._c.request("POST", _DISBURSE_PATH, json=payload)  # type: ignore[return-value]
+        return self._c.request(  # type: ignore[return-value]
+            "POST", _DISBURSE_PATH, json=payload, base_url=self._c.disburse_url, skip_checksum=True
+        )
 
     def disburse_mobile(
         self,
@@ -184,7 +186,9 @@ class AsyncDisbursementService:
             payload["referenceId"] = reference_id
         if remarks:
             payload["remarks"] = remarks
-        return await self._c.request("POST", _DISBURSE_PATH, json=payload)  # type: ignore[return-value]
+        return await self._c.request(  # type: ignore[return-value]
+            "POST", _DISBURSE_PATH, json=payload, base_url=self._c.disburse_url, skip_checksum=True
+        )
 
     async def disburse_mobile(
         self,

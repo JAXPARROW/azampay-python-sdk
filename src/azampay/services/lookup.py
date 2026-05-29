@@ -6,8 +6,8 @@ if TYPE_CHECKING:
     from ..async_client import AsyncAzamPayClient
     from ..client import AzamPayClient
 
-_STATUS_PATH = "/azampay/api/v1/Partner/TransactionStatus"
-_NAME_LOOKUP_PATH = "/azampay/api/v1/Bank/Inquiry"
+_STATUS_PATH = "/api/v1/azampay/transactionstatus"
+_NAME_LOOKUP_PATH = "/api/v1/azampay/namelookup"
 
 
 class LookupService:
@@ -20,15 +20,16 @@ class LookupService:
         self,
         pg_reference_id: str | None = None,
         external_id: str | None = None,
+        bank_name: str | None = None,
     ) -> dict[str, Any]:
         """Retrieve the status of a transaction.
 
-        Provide at least one of *pg_reference_id* (AzamPay's internal ID) or
-        *external_id* (your own reference passed during checkout).
+        Provide at least one of *pg_reference_id* or *external_id*.
 
         Args:
             pg_reference_id: AzamPay payment gateway reference ID.
             external_id:     Your external/order reference ID.
+            bank_name:       Bank or provider name (optional, used with pg_reference_id).
 
         Returns:
             Dict containing transaction status details.
@@ -43,20 +44,26 @@ class LookupService:
             params["pgReferenceId"] = pg_reference_id
         if external_id:
             params["externalId"] = external_id
-        return self._c.request("GET", _STATUS_PATH, params=params)  # type: ignore[return-value]
+        if bank_name:
+            params["bankName"] = bank_name
+        return self._c.request(  # type: ignore[return-value]
+            "GET", _STATUS_PATH, params=params, base_url=self._c.disburse_url, skip_checksum=True
+        )
 
     def name_lookup(self, bank_name: str, account_number: str) -> dict[str, Any]:
-        """Resolve the account holder name for a bank account.
+        """Resolve the account holder name for a bank or mobile-money account.
 
         Args:
-            bank_name:      Bank identifier (e.g. "CRDB", "NMB").
-            account_number: The bank account number to query.
+            bank_name:      Bank or mobile provider identifier (e.g. "CRDB", "Airtel").
+            account_number: The account or mobile number to query.
 
         Returns:
-            Dict with account holder details returned by the bank.
+            Dict with account holder details (firstName, lastName, accountNumber, etc.).
         """
         payload = {"bankName": bank_name, "accountNumber": account_number}
-        return self._c.request("POST", _NAME_LOOKUP_PATH, json=payload)  # type: ignore[return-value]
+        return self._c.request(  # type: ignore[return-value]
+            "POST", _NAME_LOOKUP_PATH, json=payload, base_url=self._c.disburse_url, skip_checksum=True
+        )
 
 
 class AsyncLookupService:
@@ -69,6 +76,7 @@ class AsyncLookupService:
         self,
         pg_reference_id: str | None = None,
         external_id: str | None = None,
+        bank_name: str | None = None,
     ) -> dict[str, Any]:
         """Retrieve the status of a transaction.
 
@@ -84,9 +92,15 @@ class AsyncLookupService:
             params["pgReferenceId"] = pg_reference_id
         if external_id:
             params["externalId"] = external_id
-        return await self._c.request("GET", _STATUS_PATH, params=params)  # type: ignore[return-value]
+        if bank_name:
+            params["bankName"] = bank_name
+        return await self._c.request(  # type: ignore[return-value]
+            "GET", _STATUS_PATH, params=params, base_url=self._c.disburse_url, skip_checksum=True
+        )
 
     async def name_lookup(self, bank_name: str, account_number: str) -> dict[str, Any]:
-        """Resolve the account holder name for a bank account."""
+        """Resolve the account holder name for a bank or mobile-money account."""
         payload = {"bankName": bank_name, "accountNumber": account_number}
-        return await self._c.request("POST", _NAME_LOOKUP_PATH, json=payload)  # type: ignore[return-value]
+        return await self._c.request(  # type: ignore[return-value]
+            "POST", _NAME_LOOKUP_PATH, json=payload, base_url=self._c.disburse_url, skip_checksum=True
+        )
