@@ -1,158 +1,181 @@
-<samp>
+# AzamPay Python SDK
 
-# [azampay](https://developerdocs.azampay.co.tz/redoc)
+Production-grade Python SDK for the [AzamPay](https://developers.azampay.co.tz) API — sync & async, mobile checkout, bank checkout, disbursements, payment links, and webhook verification.
 
-Python Wrapper to Azampay Payment Gateway
+## Features
 
-[![Downloads](https://pepy.tech/badge/azampay)](https://pepy.tech/project/azampay)
-[![Downloads](https://pepy.tech/badge/azampay/month)](https://pepy.tech/project/azampay)
-[![Downloads](https://pepy.tech/badge/azampay/week)](https://pepy.tech/project/azampay)
+- **Sync & Async** — `AzamPay` for Django/Flask, `AsyncAzamPay` for FastAPI/asyncio
+- **Auto auth** — token fetched on first call, cached for 23 hours, thread/async-safe refresh
+- **Checksum injection** — HMAC-SHA256 automatically added to mutation requests when `x_api_key` is set
+- **Retry logic** — exponential backoff on transient 5xx errors and network failures
+- **Typed exceptions** — every API error maps to a specific exception class
+- **Context manager** — `with`/`async with` for clean connection lifecycle
+- **PEP 561** — ships `py.typed` for full mypy support
 
-## Azampay API Flow
-
-All Azampay APIs follow two step process:
-
-Step 1: Get token against the application authentication credentials.
-Step 2: Consume the actual api by providing x-api-key header and token acquired in step 1.
-Following diagram shows the general flow on how to consume the Azampay api.
-
-![Azam Pay](https://developerdocs.azampay.co.tz/flow-diagrams/checkout-flow.svg)
-
-
-## Getting Started
-
-To get started with Azampay, you need to install the azampay package. You can either do it manually or use pip to install it.
-
-### Manual Installation
+## Installation
 
 ```bash
-$ git clone https://github.com/Neurotech-HQ/azampay
-$ cd azampay
-$ sudo python setup.py install
+pip install azampay-python-sdk
 ```
 
-### Using pip
+Requires Python 3.10+.
+
+## Quick Start
+
+### Synchronous
+
+```python
+from azampay import AzamPay, AzamPayError
+
+with AzamPay(
+    app_name="MyApp",
+    client_id="your_client_id",
+    client_secret="your_client_secret",
+    x_api_key="your_x_api_key",
+    sandbox=True,
+) as client:
+    # Mobile checkout (USSD push)
+    result = client.checkout.mobile_checkout(
+        amount="5000",
+        account_number="0741234567",
+        external_id="order-001",
+        provider="Airtel",
+    )
+    print(result["transactionId"])
+```
+
+### Asynchronous
+
+```python
+import asyncio
+from azampay import AsyncAzamPay
+
+async def main() -> None:
+    async with AsyncAzamPay(
+        app_name="MyApp",
+        client_id="your_client_id",
+        client_secret="your_client_secret",
+        x_api_key="your_x_api_key",
+        sandbox=True,
+    ) as client:
+        result = await client.checkout.mobile_checkout(
+            amount="5000",
+            account_number="0741234567",
+            external_id="order-001",
+            provider="Airtel",
+        )
+
+asyncio.run(main())
+```
+
+## Services
+
+### `client.checkout`
+
+```python
+# Mobile money (USSD push) — Airtel, Tigo, MPESA, HALOPESA, AZAMPESA, TTCL
+client.checkout.mobile_checkout(amount, account_number, external_id, provider, currency="TZS")
+
+# Internet banking
+client.checkout.bank_checkout(amount, merchant_account_number, merchant_mobile_number, reference_id, bank_name)
+```
+
+### `client.disbursement`
+
+```python
+# Mobile wallet payout
+client.disbursement.disburse_mobile(full_name, mobile_number, provider, amount)
+
+# Bank account payout
+client.disbursement.disburse_bank(full_name, account_number, bank_name, amount)
+
+# Raw payout with full control
+client.disbursement.disburse(source, destination, amount)
+```
+
+### `client.lookup`
+
+```python
+# Check transaction status
+client.lookup.transaction_status(pg_reference_id="pg-123")
+client.lookup.transaction_status(external_id="order-001")
+
+# Resolve bank account holder name
+client.lookup.name_lookup(bank_name="CRDB", account_number="1234567890")
+```
+
+### `client.links`
+
+```python
+# List all payment links
+client.links.list_links()
+
+# Create a reusable payment link
+client.links.create_link(amount="10000", link_name="School Fees")
+
+# Get payments for a link
+client.links.get_link_payments(link_code="LC1")
+```
+
+## Webhook Verification
+
+```python
+from azampay import WebhookValidator
+
+# In your Flask/FastAPI/Django view:
+is_valid = WebhookValidator.verify(
+    payload=request.json,
+    signature=request.headers["X-Checksum"],
+    checksum_key="your_x_api_key",
+)
+```
+
+## Error Handling
+
+```python
+from azampay import (
+    AzamPayError,
+    AuthenticationError,
+    ValidationError,
+    NotFoundError,
+    RateLimitError,
+    ServerError,
+)
+
+try:
+    result = client.checkout.mobile_checkout(...)
+except AuthenticationError:
+    # Invalid credentials
+except ValidationError as e:
+    print(e.response)   # Full API response dict
+except RateLimitError:
+    # Back off and retry
+except AzamPayError as e:
+    print(e.status_code, e.response)
+```
+
+## Configuration
+
+| Parameter       | Type            | Default | Description                          |
+|-----------------|-----------------|---------|--------------------------------------|
+| `app_name`      | `str`           | —       | App name from AzamPay portal         |
+| `client_id`     | `str`           | —       | OAuth client ID                      |
+| `client_secret` | `str`           | —       | OAuth client secret                  |
+| `x_api_key`     | `str \| None`   | `None`  | X-API-Key for requests and checksums |
+| `sandbox`       | `bool`          | `False` | Use sandbox environment              |
+| `timeout`       | `float`         | `30.0`  | HTTP timeout in seconds              |
+| `max_retries`   | `int`           | `3`     | Max retries on transient failures    |
+
+## Development
 
 ```bash
-$ pip install azampay
+make install   # Install with dev dependencies
+make test      # Run tests
+make lint      # Ruff lint
+make typecheck # mypy strict
+make build     # Build wheel + sdist
 ```
 
-## Authentication
+## License
 
-Azampay offers two forms of authentication:
-
-### API Key
-
-Bearer Auth - an open protocol to allow secure authorization in a simple and standard method from web, mobile and desktop applications.
-API-Key is the key that is provided in the http request header. Key Name is X-API-KEY.
-
-```Bearer Token``` is the JWT token that you get against your application Name, Client Id and Client Secret. For Sanbox Environment, You can get these application credentials from [Sandbox portal](https://developers.azampay.co.tz/). For production environment, you will be provided these keys after you submit your business KYC to Azampay from Sandbox portal.
-
-**Azampay** Package handles the authentication for you. You just need to provide it with its credentials and it will do the rest. Here is the example of how to use it.
-
-```python
->>> from azampay import Azampay
->>> azampay = Azampay(app_name='<app_name'>, client_id='<client_id>', client_secret='<client_secret>', x_api_key='<x_api_key>', sandbox=True)
-```
-
-**Note**: When you want to use the package in production environment, No need to specify the X-API-Key. 
-
-```python
->>> from azampay import Azampay
->>> azampay = Azampay(app_name='<app_name>', client_id='<client_id>', client_secret='<client_secret>', sandbox=False)
-```
-
-## Checkout
-
-Azampay offers two types of checkout:
-
-1. Mobile Checkout - for mobile checkout (Tigopesa, AirtelMoney, Mpesa)
-2. Bank Checkout - for bank checkout (CRDB, NMB)
-
-### Mobile Checkout
-
-Here is the example of how to use the mobile checkout.
-
-```python
->>> from azampay import Azampay
->>> azampay = Azampay(app_name='<app_name>', client_id='<client_id>', client_secret='<client_secret>', x_api_key='<x_api_key>', sandbox=True)
->>> checkout_response = azampay.mobile_checkout(amount=100, mobile='<mobile>', external_id='<external_id>', provider='<provider>')
-```
-
-### Bank Checkout
-
-Here is the example of how to use the bank checkout.
-
-```python
->>> from azampay import Azampay
->>> azampay = Azampay(app_name='<app_name>', client_id='<client_id>', client_secret='<client_secret>', x_api_key='<x_api_key>', sandbox=True)
->>> checkout_response = azampay.bank_checkout(amount=100, merchant_account_number='<merchant_account_number>', merchant_mobile_number='<merchant_mobile_number>', reference_id='<external_id>', provider='<provider>')
-```
-
-### Generate Payment Link
-
-Here is the example of how to use the generate payment link.
-
-```python
->>> from azampay import Azampay
->>> azampay = Azampay(
-...     app_name='<app_name>',
-...     client_id='<client_id>',
-...     client_secret='<client_secret>',
-...     x_api_key='<x_api_key>',
-...     sandbox=True
-)
->>> payment_link = azampay.generate_payment_link(
-    amount='<amount>', external_id='<external_id>', provider='<provider>'
-)
->>> payment_link = azampay.generate_payment_link(
-    amount='5000', external_id='12345343', provider='Airtel'
-)['data']
-```
-
-### Callback
-
-Now that you already know to initiate payments with Azampay package, Let's get started with the callback.
-
->_Note_: You will need to have a webhook endpoint set up on your application to receive the callback from Azampay.
-
-I have added a starter [FastAPI webhook endpoint](https://github.com/Neurotech-HQ/azampay/blob/main/callback.py) to this repository. You can either use it or set up your own.
-
-#### Webhook Data
-
-Here an example of the webhook data that you will receive from Azampay.
-
-```json
-{
-    "msisdn": "0178823",
-    "amount": "2000",
-    "message": "any message",
-    "utilityref": "1292-123",
-    "operator": "Tigo",
-    "reference": "123-123",
-    "transactionstatus": "success",
-    "submerchantAcc": "01723113",
-}
-```
-
-## Issues
-
-If you will face any issue with the usage of this package please raise one so as we can quickly fix it as soon as possible;
-
-## Contributing
-
-This is an opensource project under ```MIT License``` so any one is welcome to contribute from typo, to source code to documentation, ```JUST FORK IT```.
-
-## Related
-
-1. [Python-DPO](https://github.com/Neurotech-HQ/python-dpo)
-2. [Pypesa](https://github.com/Neurotech-HQ/pypesa)
-3. [Tigopesa](https://github.com/Neurotech-HQ/tigopesa)
-
-## All the credit
-
-1. [kalebu](https://github.com/Kalebu)
-2. All other contributors
-
-
-</samp>
+MIT
