@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import threading
 import time
+from datetime import datetime, timezone
 from typing import Any
 
 import httpx
@@ -21,7 +22,7 @@ _SANDBOX_BASE = "https://sandbox.azampay.co.tz"
 _SANDBOX_AUTH = "https://authenticator-sandbox.azampay.co.tz"
 _SANDBOX_DISBURSE = "https://api-disbursement-sandbox.azampay.co.tz"
 _PRODUCTION_AUTH = "https://authenticator.azampay.co.tz"
-_PRODUCTION_API = "https://api.azampay.co.tz"
+_PRODUCTION_API = "https://checkout.azampay.co.tz"
 _PRODUCTION_DISBURSE = "https://api-disbursement.azampay.co.tz"
 _AUTH_PATH = "/AppRegistration/GenerateToken"
 _TOKEN_TTL = 82800  # 23 hours (API TTL is 24 hours)
@@ -139,7 +140,16 @@ class AzamPayClient:
 
                 token = body["data"]["accessToken"]
                 self._token = f"Bearer {token}"
-                self._token_expires_at = time.monotonic() + _TOKEN_TTL
+                expire_str = (body.get("data") or {}).get("expire")
+                if expire_str:
+                    try:
+                        expire_dt = datetime.fromisoformat(expire_str.replace("Z", "+00:00"))
+                        ttl = (expire_dt - datetime.now(timezone.utc)).total_seconds() - 60
+                        self._token_expires_at = time.monotonic() + max(ttl, 0)
+                    except (ValueError, TypeError):
+                        self._token_expires_at = time.monotonic() + _TOKEN_TTL
+                else:
+                    self._token_expires_at = time.monotonic() + _TOKEN_TTL
                 return self._token
 
             raise (

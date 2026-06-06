@@ -6,7 +6,9 @@ if TYPE_CHECKING:
     from ..async_client import AsyncAzamPayClient
     from ..client import AzamPayClient
 
-MobileProvider = Literal["Airtel", "Tigo", "MPESA", "HALOPESA", "AZAMPESA", "TTCL"]
+MobileProvider = Literal["Airtel", "Tigo", "Halopesa", "Azampesa", "Mpesa"]
+DisburseProvider = Literal["Airtel", "Azampesa", "Tigo"]
+BankProvider = Literal["CRDB", "NMB"]
 
 _MNO_PATH = "/azampay/mno/checkout"
 _BANK_PATH = "/azampay/bank/checkout"

@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any
+
+from .checkout import DisburseProvider
 
 if TYPE_CHECKING:
     from ..async_client import AsyncAzamPayClient
@@ -48,12 +51,12 @@ class DisbursementService:
             "destination": destination,
             "transferDetails": {
                 "type": transfer_type,
-                "amount": amount,
-                "currency": currency,
+                "amount": float(amount),
+                "dateInEpoch": int(datetime.now(timezone.utc).timestamp() * 1000),
             },
         }
         if reference_id:
-            payload["referenceId"] = reference_id
+            payload["externalReferenceId"] = reference_id
         if remarks:
             payload["remarks"] = remarks
         return self._c.request(  # type: ignore[return-value]
@@ -64,7 +67,7 @@ class DisbursementService:
         self,
         full_name: str,
         mobile_number: str,
-        provider: str,
+        provider: DisburseProvider,
         amount: str,
         currency: str = "TZS",
         reference_id: str | None = None,
@@ -178,12 +181,12 @@ class AsyncDisbursementService:
             "destination": destination,
             "transferDetails": {
                 "type": transfer_type,
-                "amount": amount,
-                "currency": currency,
+                "amount": float(amount),
+                "dateInEpoch": int(datetime.now(timezone.utc).timestamp() * 1000),
             },
         }
         if reference_id:
-            payload["referenceId"] = reference_id
+            payload["externalReferenceId"] = reference_id
         if remarks:
             payload["remarks"] = remarks
         return await self._c.request(  # type: ignore[return-value]
@@ -194,7 +197,7 @@ class AsyncDisbursementService:
         self,
         full_name: str,
         mobile_number: str,
-        provider: str,
+        provider: DisburseProvider,
         amount: str,
         currency: str = "TZS",
         reference_id: str | None = None,
