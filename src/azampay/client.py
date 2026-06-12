@@ -21,6 +21,8 @@ from .security import SecurityManager
 _SANDBOX_BASE = "https://sandbox.azampay.co.tz"
 _SANDBOX_AUTH = "https://authenticator-sandbox.azampay.co.tz"
 _SANDBOX_DISBURSE = "https://api-disbursement-sandbox.azampay.co.tz"
+_TEST_AUTH = "https://authenticator-test.azampay.co.tz"
+_TEST_DISBURSE = "https://api-disbursement-test.azampay.co.tz"
 _PRODUCTION_AUTH = "https://authenticator.azampay.co.tz"
 _PRODUCTION_API = "https://checkout.azampay.co.tz"
 _PRODUCTION_DISBURSE = "https://api-disbursement.azampay.co.tz"
@@ -60,6 +62,8 @@ class AzamPayClient:
         client_secret: str,
         x_api_key: str | None = None,
         sandbox: bool = False,
+        disburse_test: bool = False,
+        rsa_public_key: str | None = None,
         timeout: float = 30.0,
         max_retries: int = 3,
         token: str | None = None,
@@ -69,12 +73,20 @@ class AzamPayClient:
         self.client_secret = client_secret
         self.x_api_key = x_api_key
         self.sandbox = sandbox
+        self.rsa_public_key = rsa_public_key
         self.timeout = timeout
         self.max_retries = max_retries
 
-        self._auth_url = _SANDBOX_AUTH if sandbox else _PRODUCTION_AUTH
+        if disburse_test:
+            self._auth_url = _TEST_AUTH
+            self.disburse_url = _TEST_DISBURSE
+        elif sandbox:
+            self._auth_url = _SANDBOX_AUTH
+            self.disburse_url = _SANDBOX_DISBURSE
+        else:
+            self._auth_url = _PRODUCTION_AUTH
+            self.disburse_url = _PRODUCTION_DISBURSE
         self.base_url = _SANDBOX_BASE if sandbox else _PRODUCTION_API
-        self.disburse_url = _SANDBOX_DISBURSE if sandbox else _PRODUCTION_DISBURSE
 
         # Accept a pre-issued bearer token (e.g. from the developer portal)
         self._token: str | None = f"Bearer {token}" if token else None

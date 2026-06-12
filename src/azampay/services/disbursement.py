@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any
 
-from .checkout import DisburseProvider
+from ..security import SecurityManager
 
 if TYPE_CHECKING:
     from ..async_client import AsyncAzamPayClient
@@ -23,8 +23,8 @@ class DisbursementService:
         source: dict[str, Any],
         destination: dict[str, Any],
         amount: str,
+        reference_id: str,
         currency: str = "TZS",
-        reference_id: str | None = None,
         remarks: str | None = None,
         transfer_type: str = "INTERNAL",
     ) -> dict[str, Any]:
@@ -38,27 +38,33 @@ class DisbursementService:
                            Same keys as *source*; use the mobile number as
                            ``accountNumber`` for mobile-money recipients.
             amount:        Amount to disburse as a string (e.g. "5000").
+            reference_id:  Your unique reference ID (max 30 chars, required by API).
             currency:      ISO 4217 currency code (default "TZS").
-            reference_id:  Your unique reference for this disbursement.
             remarks:       Free-text description attached to the transfer.
             transfer_type: "INTERNAL" (same bank) or "EXTERNAL" (default "INTERNAL").
 
         Returns:
             AzamPay response dict with transaction details.
         """
+        epoch_date = int(datetime.now(timezone.utc).timestamp())
         payload: dict[str, Any] = {
             "source": source,
             "destination": destination,
             "transferDetails": {
                 "type": transfer_type,
                 "amount": float(amount),
-                "dateInEpoch": int(datetime.now(timezone.utc).timestamp() * 1000),
+                "dateInEpoch": epoch_date,
             },
+            "externalReferenceId": reference_id,
         }
-        if reference_id:
-            payload["externalReferenceId"] = reference_id
         if remarks:
             payload["remarks"] = remarks
+        if self._c.rsa_public_key:
+            src_acc = source.get("accountNumber", "")
+            dst_acc = destination.get("accountNumber", "")
+            currency_val = source.get("currency", currency)
+            input_string = f"{src_acc}{dst_acc}{currency_val}{amount}{epoch_date}{reference_id}"
+            payload["checksum"] = SecurityManager.create_rsa_checksum(self._c.rsa_public_key, input_string)
         return self._c.request(  # type: ignore[return-value]
             "POST", _DISBURSE_PATH, json=payload, base_url=self._c.disburse_url, skip_checksum=True
         )
@@ -67,24 +73,25 @@ class DisbursementService:
         self,
         full_name: str,
         mobile_number: str,
-        provider: DisburseProvider,
+        provider: str,
         amount: str,
+        reference_id: str,
+        source: dict[str, Any],
         currency: str = "TZS",
-        reference_id: str | None = None,
         remarks: str | None = None,
-        source: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Convenience wrapper — disburse to a mobile-money wallet.
 
         Args:
             full_name:     Recipient's full name.
             mobile_number: Recipient's mobile number (e.g. "0741234567").
-            provider:      Mobile provider name (e.g. "Airtel", "Tigo").
+            provider:      Mobile provider name (e.g. "Airtel", "Tigo", "Azampesa", "Vodacom", "Selcom").
             amount:        Amount to disburse as a string.
+            reference_id:  Your unique reference ID (max 30 chars, required by API).
+            source:        Source account dict with countryCode, fullName, bankName,
+                           accountNumber, currency.
             currency:      ISO 4217 currency code (default "TZS").
-            reference_id:  Your unique reference (optional).
             remarks:       Free-text description (optional).
-            source:        Override the source account dict (optional).
         """
         destination = {
             "countryCode": "TZ",
@@ -93,19 +100,12 @@ class DisbursementService:
             "accountNumber": mobile_number,
             "currency": currency,
         }
-        _source = source or {
-            "countryCode": "TZ",
-            "fullName": "",
-            "bankName": "",
-            "accountNumber": "",
-            "currency": currency,
-        }
         return self.disburse(
-            source=_source,
+            source=source,
             destination=destination,
             amount=amount,
-            currency=currency,
             reference_id=reference_id,
+            currency=currency,
             remarks=remarks,
         )
 
@@ -115,11 +115,11 @@ class DisbursementService:
         account_number: str,
         bank_name: str,
         amount: str,
+        reference_id: str,
+        source: dict[str, Any],
         currency: str = "TZS",
-        reference_id: str | None = None,
         remarks: str | None = None,
         transfer_type: str = "EXTERNAL",
-        source: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Convenience wrapper — disburse to a bank account.
 
@@ -141,19 +141,12 @@ class DisbursementService:
             "accountNumber": account_number,
             "currency": currency,
         }
-        _source = source or {
-            "countryCode": "TZ",
-            "fullName": "",
-            "bankName": "",
-            "accountNumber": "",
-            "currency": currency,
-        }
         return self.disburse(
-            source=_source,
+            source=source,
             destination=destination,
             amount=amount,
-            currency=currency,
             reference_id=reference_id,
+            currency=currency,
             remarks=remarks,
             transfer_type=transfer_type,
         )
@@ -170,25 +163,31 @@ class AsyncDisbursementService:
         source: dict[str, Any],
         destination: dict[str, Any],
         amount: str,
+        reference_id: str,
         currency: str = "TZS",
-        reference_id: str | None = None,
         remarks: str | None = None,
         transfer_type: str = "INTERNAL",
     ) -> dict[str, Any]:
         """Send a disbursement to a bank account or mobile wallet."""
+        epoch_date = int(datetime.now(timezone.utc).timestamp())
         payload: dict[str, Any] = {
             "source": source,
             "destination": destination,
             "transferDetails": {
                 "type": transfer_type,
                 "amount": float(amount),
-                "dateInEpoch": int(datetime.now(timezone.utc).timestamp() * 1000),
+                "dateInEpoch": epoch_date,
             },
+            "externalReferenceId": reference_id,
         }
-        if reference_id:
-            payload["externalReferenceId"] = reference_id
         if remarks:
             payload["remarks"] = remarks
+        if self._c.rsa_public_key:
+            src_acc = source.get("accountNumber", "")
+            dst_acc = destination.get("accountNumber", "")
+            currency_val = source.get("currency", currency)
+            input_string = f"{src_acc}{dst_acc}{currency_val}{amount}{epoch_date}{reference_id}"
+            payload["checksum"] = SecurityManager.create_rsa_checksum(self._c.rsa_public_key, input_string)
         return await self._c.request(  # type: ignore[return-value]
             "POST", _DISBURSE_PATH, json=payload, base_url=self._c.disburse_url, skip_checksum=True
         )
@@ -197,12 +196,12 @@ class AsyncDisbursementService:
         self,
         full_name: str,
         mobile_number: str,
-        provider: DisburseProvider,
+        provider: str,
         amount: str,
+        reference_id: str,
+        source: dict[str, Any],
         currency: str = "TZS",
-        reference_id: str | None = None,
         remarks: str | None = None,
-        source: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Convenience wrapper — disburse to a mobile-money wallet."""
         destination = {
@@ -212,19 +211,12 @@ class AsyncDisbursementService:
             "accountNumber": mobile_number,
             "currency": currency,
         }
-        _source = source or {
-            "countryCode": "TZ",
-            "fullName": "",
-            "bankName": "",
-            "accountNumber": "",
-            "currency": currency,
-        }
         return await self.disburse(
-            source=_source,
+            source=source,
             destination=destination,
             amount=amount,
-            currency=currency,
             reference_id=reference_id,
+            currency=currency,
             remarks=remarks,
         )
 
@@ -234,11 +226,11 @@ class AsyncDisbursementService:
         account_number: str,
         bank_name: str,
         amount: str,
+        reference_id: str,
+        source: dict[str, Any],
         currency: str = "TZS",
-        reference_id: str | None = None,
         remarks: str | None = None,
         transfer_type: str = "EXTERNAL",
-        source: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Convenience wrapper — disburse to a bank account."""
         destination = {
