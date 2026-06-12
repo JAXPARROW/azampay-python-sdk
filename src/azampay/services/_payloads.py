@@ -50,7 +50,7 @@ def bank_checkout_payload(
         "merchantMobileNumber": merchant_mobile_number,
         "referenceId": reference_id,
         "amount": amount,
-        "currency": currency,
+        "currencyCode": currency,
         "provider": bank_name,
     }
     if merchant_name:
@@ -148,6 +148,45 @@ def link_payload(
         payload["description"] = description
     if expiry_date:
         payload["expiryDate"] = expiry_date
+    return payload
+
+
+def post_checkout_payload(
+    amount: str,
+    external_id: str,
+    currency: str,
+    language: str,
+    app_name: str | None,
+    cart: dict[str, Any] | None,
+    client_id: str | None,
+    redirect_fail_url: str | None,
+    redirect_success_url: str | None,
+    request_origin: str | None,
+    vendor_id: str | None,
+    vendor_name: str | None,
+) -> dict[str, Any]:
+    payload: dict[str, Any] = {
+        "amount": amount,
+        "currency": currency,
+        "externalId": external_id,
+        "language": language,
+    }
+    if app_name:
+        payload["appName"] = app_name
+    if cart:
+        payload["cart"] = cart
+    if client_id:
+        payload["clientId"] = client_id
+    if redirect_fail_url:
+        payload["redirectFailURL"] = redirect_fail_url
+    if redirect_success_url:
+        payload["redirectSuccessURL"] = redirect_success_url
+    if request_origin:
+        payload["requestOrigin"] = request_origin
+    if vendor_id:
+        payload["vendorId"] = vendor_id
+    if vendor_name:
+        payload["vendorName"] = vendor_name
     return payload
 
 

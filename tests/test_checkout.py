@@ -10,6 +10,9 @@ from tests.conftest import SANDBOX_AUTH, SANDBOX_BASE
 AUTH_URL = f"{SANDBOX_AUTH}/AppRegistration/GenerateToken"
 MNO_URL = f"{SANDBOX_BASE}/azampay/mno/checkout"
 BANK_URL = f"{SANDBOX_BASE}/azampay/bank/checkout"
+PARTNERS_URL = f"{SANDBOX_BASE}/api/v1/Partner/GetPaymentPartners"
+POST_CHECKOUT_URL = f"{SANDBOX_BASE}/api/v1/Partner/PostCheckout"
+PUBLIC_KEY_URL = f"{SANDBOX_BASE}/azampay/v1/public-key"
 
 
 def _auth_ok() -> Response:
@@ -109,7 +112,7 @@ def test_bank_checkout_payload(client: AzamPay) -> None:
     assert body["referenceId"] == "ref-001"
     assert body["provider"] == "CRDB"
     assert body["merchantName"] == "Test Merchant"
-    assert body["currency"] == "TZS"
+    assert body["currencyCode"] == "TZS"
 
 
 @respx.mock
@@ -121,3 +124,73 @@ def test_bank_checkout_optional_otp(client: AzamPay) -> None:
 
     body = json.loads(mock.calls[0].request.content)
     assert body["otp"] == "123456"
+
+
+@respx.mock
+def test_get_payment_partners(client: AzamPay) -> None:
+    respx.post(AUTH_URL).mock(return_value=_auth_ok())
+    partners = [{"partnerName": "Airtel", "provider": "Airtel"}, {"partnerName": "Tigo", "provider": "Tigo"}]
+    respx.get(PARTNERS_URL).mock(return_value=Response(200, json=partners))
+
+    result = client.checkout.get_payment_partners()
+
+    assert isinstance(result, list)
+    assert result[0]["partnerName"] == "Airtel"
+
+
+@respx.mock
+def test_post_checkout_returns_url(client: AzamPay) -> None:
+    respx.post(AUTH_URL).mock(return_value=_auth_ok())
+    mock = respx.post(POST_CHECKOUT_URL).mock(return_value=Response(200, json="https://checkout.azampay.co.tz/pay/abc123"))
+
+    result = client.checkout.post_checkout(
+        amount="5000",
+        external_id="ord-123",
+        redirect_success_url="https://myapp.com/success",
+        redirect_fail_url="https://myapp.com/fail",
+    )
+
+    body = json.loads(mock.calls[0].request.content)
+    assert body["amount"] == "5000"
+    assert body["externalId"] == "ord-123"
+    assert body["redirectSuccessURL"] == "https://myapp.com/success"
+    assert body["redirectFailURL"] == "https://myapp.com/fail"
+    assert body["currency"] == "TZS"
+    assert body["language"] == "en"
+    assert result == "https://checkout.azampay.co.tz/pay/abc123"
+
+
+@respx.mock
+def test_post_checkout_optional_fields_omitted(client: AzamPay) -> None:
+    respx.post(AUTH_URL).mock(return_value=_auth_ok())
+    mock = respx.post(POST_CHECKOUT_URL).mock(return_value=Response(200, json="https://pay.example.com/x"))
+
+    client.checkout.post_checkout(amount="1000", external_id="ord-1")
+
+    body = json.loads(mock.calls[0].request.content)
+    assert "appName" not in body
+    assert "cart" not in body
+    assert "vendorId" not in body
+
+
+@respx.mock
+def test_get_public_key(client: AzamPay) -> None:
+    respx.post(AUTH_URL).mock(return_value=_auth_ok())
+    pem_response = {"success": True, "format": "Pem", "publicKey": "-----BEGIN PUBLIC KEY-----\nMIIB...\n-----END PUBLIC KEY-----\n"}
+    mock = respx.get(PUBLIC_KEY_URL).mock(return_value=Response(200, json=pem_response))
+
+    result = client.checkout.get_public_key()
+
+    assert mock.calls[0].request.url.params["format"] == "Pem"
+    assert result["format"] == "Pem"
+    assert "publicKey" in result
+
+
+@respx.mock
+def test_get_public_key_xml_format(client: AzamPay) -> None:
+    respx.post(AUTH_URL).mock(return_value=_auth_ok())
+    respx.get(PUBLIC_KEY_URL).mock(return_value=Response(200, json={"success": True, "format": "Xml", "publicKey": "<RSAKeyValue/>"}))
+
+    result = client.checkout.get_public_key(format="Xml")
+
+    assert result["format"] == "Xml"
