@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
+from ._payloads import link_payload, unwrap_list
+
 if TYPE_CHECKING:
     from ..async_client import AsyncAzamPayClient
     from ..client import AzamPayClient
@@ -19,10 +21,7 @@ class LinkService:
 
     def list_links(self) -> list[dict[str, Any]]:
         """Return all payment links for this merchant account."""
-        result = self._c.request("GET", _LIST_PATH)
-        if isinstance(result, dict):
-            return result.get("data", result)  # type: ignore[no-any-return]
-        return result  # type: ignore[no-any-return]
+        return unwrap_list(self._c.request("GET", _LIST_PATH))
 
     def create_link(
         self,
@@ -44,13 +43,7 @@ class LinkService:
         Returns:
             Dict with ``linkCode``, ``paymentLink``, and related metadata.
         """
-        payload: dict[str, Any] = {"amount": amount, "currency": currency}
-        if link_name:
-            payload["linkName"] = link_name
-        if description:
-            payload["description"] = description
-        if expiry_date:
-            payload["expiryDate"] = expiry_date
+        payload = link_payload(amount, currency, link_name, description, expiry_date)
         return self._c.request("POST", _CREATE_PATH, json=payload)  # type: ignore[no-any-return]
 
     def get_link_payments(self, link_code: str) -> list[dict[str, Any]]:
@@ -60,9 +53,7 @@ class LinkService:
             link_code: The unique code identifying the payment link.
         """
         result = self._c.request("GET", _LINK_PAYMENTS_PATH, params={"LinkCode": link_code})
-        if isinstance(result, dict):
-            return result.get("data", result)  # type: ignore[no-any-return]
-        return result  # type: ignore[no-any-return]
+        return unwrap_list(result)
 
 
 class AsyncLinkService:
@@ -73,10 +64,7 @@ class AsyncLinkService:
 
     async def list_links(self) -> list[dict[str, Any]]:
         """Return all payment links for this merchant account."""
-        result = await self._c.request("GET", _LIST_PATH)
-        if isinstance(result, dict):
-            return result.get("data", result)  # type: ignore[no-any-return]
-        return result  # type: ignore[no-any-return]
+        return unwrap_list(await self._c.request("GET", _LIST_PATH))
 
     async def create_link(
         self,
@@ -87,18 +75,10 @@ class AsyncLinkService:
         expiry_date: str | None = None,
     ) -> dict[str, Any]:
         """Create a reusable payment link."""
-        payload: dict[str, Any] = {"amount": amount, "currency": currency}
-        if link_name:
-            payload["linkName"] = link_name
-        if description:
-            payload["description"] = description
-        if expiry_date:
-            payload["expiryDate"] = expiry_date
+        payload = link_payload(amount, currency, link_name, description, expiry_date)
         return await self._c.request("POST", _CREATE_PATH, json=payload)  # type: ignore[no-any-return]
 
     async def get_link_payments(self, link_code: str) -> list[dict[str, Any]]:
         """Return all payments made against *link_code*."""
         result = await self._c.request("GET", _LINK_PAYMENTS_PATH, params={"LinkCode": link_code})
-        if isinstance(result, dict):
-            return result.get("data", result)  # type: ignore[no-any-return]
-        return result  # type: ignore[no-any-return]
+        return unwrap_list(result)

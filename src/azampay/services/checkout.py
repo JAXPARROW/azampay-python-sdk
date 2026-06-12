@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Literal
 
+from ._payloads import bank_checkout_payload, mobile_checkout_payload
+
 if TYPE_CHECKING:
     from ..async_client import AsyncAzamPayClient
     from ..client import AzamPayClient
@@ -41,17 +43,9 @@ class CheckoutService:
             additional_properties: Optional extra key/value pairs forwarded to AzamPay.
             callback_url:          URL to receive the payment status callback.
         """
-        payload: dict[str, Any] = {
-            "accountNumber": account_number,
-            "amount": amount,
-            "currency": currency,
-            "externalId": external_id,
-            "provider": provider,
-        }
-        if additional_properties:
-            payload["additionalProperties"] = additional_properties
-        if callback_url:
-            payload["callbackUrl"] = callback_url
+        payload = mobile_checkout_payload(
+            amount, account_number, external_id, provider, currency, additional_properties, callback_url
+        )
         return self._c.request("POST", _MNO_PATH, json=payload)  # type: ignore[no-any-return]
 
     def bank_checkout(
@@ -81,22 +75,10 @@ class CheckoutService:
             additional_properties:   Optional extra key/value pairs.
             callback_url:            URL to receive the payment status callback.
         """
-        payload: dict[str, Any] = {
-            "merchantAccountNumber": merchant_account_number,
-            "merchantMobileNumber": merchant_mobile_number,
-            "referenceId": reference_id,
-            "amount": amount,
-            "currency": currency,
-            "provider": bank_name,
-        }
-        if merchant_name:
-            payload["merchantName"] = merchant_name
-        if otp:
-            payload["otp"] = otp
-        if additional_properties:
-            payload["additionalProperties"] = additional_properties
-        if callback_url:
-            payload["callbackUrl"] = callback_url
+        payload = bank_checkout_payload(
+            amount, merchant_account_number, merchant_mobile_number, reference_id,
+            bank_name, merchant_name, otp, currency, additional_properties, callback_url,
+        )
         return self._c.request("POST", _BANK_PATH, json=payload)  # type: ignore[no-any-return]
 
 
@@ -117,17 +99,9 @@ class AsyncCheckoutService:
         callback_url: str | None = None,
     ) -> dict[str, Any]:
         """Initiate a mobile-money (USSD push) payment."""
-        payload: dict[str, Any] = {
-            "accountNumber": account_number,
-            "amount": amount,
-            "currency": currency,
-            "externalId": external_id,
-            "provider": provider,
-        }
-        if additional_properties:
-            payload["additionalProperties"] = additional_properties
-        if callback_url:
-            payload["callbackUrl"] = callback_url
+        payload = mobile_checkout_payload(
+            amount, account_number, external_id, provider, currency, additional_properties, callback_url
+        )
         return await self._c.request("POST", _MNO_PATH, json=payload)  # type: ignore[no-any-return]
 
     async def bank_checkout(
@@ -144,20 +118,8 @@ class AsyncCheckoutService:
         callback_url: str | None = None,
     ) -> dict[str, Any]:
         """Initiate a bank-to-merchant payment (internet banking)."""
-        payload: dict[str, Any] = {
-            "merchantAccountNumber": merchant_account_number,
-            "merchantMobileNumber": merchant_mobile_number,
-            "referenceId": reference_id,
-            "amount": amount,
-            "currency": currency,
-            "provider": bank_name,
-        }
-        if merchant_name:
-            payload["merchantName"] = merchant_name
-        if otp:
-            payload["otp"] = otp
-        if additional_properties:
-            payload["additionalProperties"] = additional_properties
-        if callback_url:
-            payload["callbackUrl"] = callback_url
+        payload = bank_checkout_payload(
+            amount, merchant_account_number, merchant_mobile_number, reference_id,
+            bank_name, merchant_name, otp, currency, additional_properties, callback_url,
+        )
         return await self._c.request("POST", _BANK_PATH, json=payload)  # type: ignore[no-any-return]

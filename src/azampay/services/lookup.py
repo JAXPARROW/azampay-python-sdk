@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
+from ._payloads import transaction_status_params
+
 if TYPE_CHECKING:
     from ..async_client import AsyncAzamPayClient
     from ..client import AzamPayClient
@@ -37,15 +39,7 @@ class LookupService:
         Raises:
             ValueError: If neither identifier is provided.
         """
-        if not pg_reference_id and not external_id:
-            raise ValueError("Provide at least one of pg_reference_id or external_id.")
-        params: dict[str, str] = {}
-        if pg_reference_id:
-            params["pgReferenceId"] = pg_reference_id
-        if external_id:
-            params["externalId"] = external_id
-        if bank_name:
-            params["bankName"] = bank_name
+        params = transaction_status_params(pg_reference_id, external_id, bank_name)
         return self._c.request(  # type: ignore[no-any-return]
             "GET", _STATUS_PATH, params=params, base_url=self._c.disburse_url, skip_checksum=True
         )
@@ -85,15 +79,7 @@ class AsyncLookupService:
         Raises:
             ValueError: If neither identifier is provided.
         """
-        if not pg_reference_id and not external_id:
-            raise ValueError("Provide at least one of pg_reference_id or external_id.")
-        params: dict[str, str] = {}
-        if pg_reference_id:
-            params["pgReferenceId"] = pg_reference_id
-        if external_id:
-            params["externalId"] = external_id
-        if bank_name:
-            params["bankName"] = bank_name
+        params = transaction_status_params(pg_reference_id, external_id, bank_name)
         return await self._c.request(  # type: ignore[no-any-return]
             "GET", _STATUS_PATH, params=params, base_url=self._c.disburse_url, skip_checksum=True
         )

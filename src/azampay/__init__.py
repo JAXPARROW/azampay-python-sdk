@@ -41,7 +41,7 @@ class AzamPay(AzamPayClient):
     """
 
     def __init__(self, *args: object, **kwargs: object) -> None:
-        super().__init__(*args, **kwargs)  # type: ignore[arg-type]
+        super().__init__(*args, **kwargs)
         self.checkout = CheckoutService(self)
         self.disbursement = DisbursementService(self)
         self.lookup = LookupService(self)
@@ -63,7 +63,7 @@ class AsyncAzamPay(AsyncAzamPayClient):
     """
 
     def __init__(self, *args: object, **kwargs: object) -> None:
-        super().__init__(*args, **kwargs)  # type: ignore[arg-type]
+        super().__init__(*args, **kwargs)
         self.checkout = AsyncCheckoutService(self)
         self.disbursement = AsyncDisbursementService(self)
         self.lookup = AsyncLookupService(self)
