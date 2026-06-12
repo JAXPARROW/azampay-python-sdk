@@ -218,10 +218,11 @@ class AzamPayClient:
                 continue
 
             if resp.status_code in _RETRY_STATUSES and attempt < self.max_retries:
+                body = _safe_json(resp)
                 last_exc = AzamPayError(
-                    _safe_json(resp).get("message", "Server error"),
+                    body.get("message", "Server error"),
                     status_code=resp.status_code,
-                    response=_safe_json(resp),
+                    response=body,
                 )
                 _backoff(attempt)
                 continue

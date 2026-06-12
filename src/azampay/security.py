@@ -4,10 +4,17 @@ import base64
 import hashlib
 import hmac
 import json
+from functools import lru_cache
 from typing import Any
 
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import padding
+from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicKey
+
+
+@lru_cache(maxsize=8)
+def _load_rsa_public_key(pem: str) -> RSAPublicKey:
+    return serialization.load_pem_public_key(pem.encode())  # type: ignore[return-value]
 
 
 class SecurityManager:
@@ -43,14 +50,14 @@ class SecurityManager:
         Name lookup input:  bankName+accountNumber
         """
         sha512_digest = hashlib.sha512(input_string.encode("utf-8")).digest()
-        public_key = serialization.load_pem_public_key(public_key_pem.encode())
-        encrypted = public_key.encrypt(sha512_digest, padding.PKCS1v15())  # type: ignore[union-attr]
+        public_key = _load_rsa_public_key(public_key_pem)
+        encrypted = public_key.encrypt(sha512_digest, padding.PKCS1v15())
         return base64.b64encode(encrypted).decode()
 
     @staticmethod
     def _canonicalize(obj: Any) -> Any:
         if isinstance(obj, dict):
-            return {k: SecurityManager._canonicalize(v) for k in sorted(obj) for v in (obj[k],)}
+            return {k: SecurityManager._canonicalize(obj[k]) for k in sorted(obj)}
         if isinstance(obj, list):
             return [SecurityManager._canonicalize(item) for item in obj]
         return obj
