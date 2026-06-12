@@ -52,7 +52,7 @@ class CheckoutService:
             payload["additionalProperties"] = additional_properties
         if callback_url:
             payload["callbackUrl"] = callback_url
-        return self._c.request("POST", _MNO_PATH, json=payload)  # type: ignore[return-value]
+        return self._c.request("POST", _MNO_PATH, json=payload)  # type: ignore[no-any-return]
 
     def bank_checkout(
         self,
@@ -97,7 +97,7 @@ class CheckoutService:
             payload["additionalProperties"] = additional_properties
         if callback_url:
             payload["callbackUrl"] = callback_url
-        return self._c.request("POST", _BANK_PATH, json=payload)  # type: ignore[return-value]
+        return self._c.request("POST", _BANK_PATH, json=payload)  # type: ignore[no-any-return]
 
 
 class AsyncCheckoutService:
@@ -128,7 +128,7 @@ class AsyncCheckoutService:
             payload["additionalProperties"] = additional_properties
         if callback_url:
             payload["callbackUrl"] = callback_url
-        return await self._c.request("POST", _MNO_PATH, json=payload)  # type: ignore[return-value]
+        return await self._c.request("POST", _MNO_PATH, json=payload)  # type: ignore[no-any-return]
 
     async def bank_checkout(
         self,
@@ -160,4 +160,4 @@ class AsyncCheckoutService:
             payload["additionalProperties"] = additional_properties
         if callback_url:
             payload["callbackUrl"] = callback_url
-        return await self._c.request("POST", _BANK_PATH, json=payload)  # type: ignore[return-value]
+        return await self._c.request("POST", _BANK_PATH, json=payload)  # type: ignore[no-any-return]

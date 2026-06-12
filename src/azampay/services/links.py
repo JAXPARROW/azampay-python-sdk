@@ -21,8 +21,8 @@ class LinkService:
         """Return all payment links for this merchant account."""
         result = self._c.request("GET", _LIST_PATH)
         if isinstance(result, dict):
-            return result.get("data", result)  # type: ignore[return-value]
-        return result  # type: ignore[return-value]
+            return result.get("data", result)  # type: ignore[no-any-return]
+        return result  # type: ignore[no-any-return]
 
     def create_link(
         self,
@@ -51,7 +51,7 @@ class LinkService:
             payload["description"] = description
         if expiry_date:
             payload["expiryDate"] = expiry_date
-        return self._c.request("POST", _CREATE_PATH, json=payload)  # type: ignore[return-value]
+        return self._c.request("POST", _CREATE_PATH, json=payload)  # type: ignore[no-any-return]
 
     def get_link_payments(self, link_code: str) -> list[dict[str, Any]]:
         """Return all payments made against *link_code*.
@@ -61,8 +61,8 @@ class LinkService:
         """
         result = self._c.request("GET", _LINK_PAYMENTS_PATH, params={"LinkCode": link_code})
         if isinstance(result, dict):
-            return result.get("data", result)  # type: ignore[return-value]
-        return result  # type: ignore[return-value]
+            return result.get("data", result)  # type: ignore[no-any-return]
+        return result  # type: ignore[no-any-return]
 
 
 class AsyncLinkService:
@@ -75,8 +75,8 @@ class AsyncLinkService:
         """Return all payment links for this merchant account."""
         result = await self._c.request("GET", _LIST_PATH)
         if isinstance(result, dict):
-            return result.get("data", result)  # type: ignore[return-value]
-        return result  # type: ignore[return-value]
+            return result.get("data", result)  # type: ignore[no-any-return]
+        return result  # type: ignore[no-any-return]
 
     async def create_link(
         self,
@@ -94,11 +94,11 @@ class AsyncLinkService:
             payload["description"] = description
         if expiry_date:
             payload["expiryDate"] = expiry_date
-        return await self._c.request("POST", _CREATE_PATH, json=payload)  # type: ignore[return-value]
+        return await self._c.request("POST", _CREATE_PATH, json=payload)  # type: ignore[no-any-return]
 
     async def get_link_payments(self, link_code: str) -> list[dict[str, Any]]:
         """Return all payments made against *link_code*."""
         result = await self._c.request("GET", _LINK_PAYMENTS_PATH, params={"LinkCode": link_code})
         if isinstance(result, dict):
-            return result.get("data", result)  # type: ignore[return-value]
-        return result  # type: ignore[return-value]
+            return result.get("data", result)  # type: ignore[no-any-return]
+        return result  # type: ignore[no-any-return]

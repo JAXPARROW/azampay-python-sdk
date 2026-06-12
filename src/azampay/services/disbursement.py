@@ -65,7 +65,7 @@ class DisbursementService:
             currency_val = source.get("currency", currency)
             input_string = f"{src_acc}{dst_acc}{currency_val}{amount}{epoch_date}{reference_id}"
             payload["checksum"] = SecurityManager.create_rsa_checksum(self._c.rsa_public_key, input_string)
-        return self._c.request(  # type: ignore[return-value]
+        return self._c.request(  # type: ignore[no-any-return]
             "POST", _DISBURSE_PATH, json=payload, base_url=self._c.disburse_url, skip_checksum=True
         )
 
@@ -188,7 +188,7 @@ class AsyncDisbursementService:
             currency_val = source.get("currency", currency)
             input_string = f"{src_acc}{dst_acc}{currency_val}{amount}{epoch_date}{reference_id}"
             payload["checksum"] = SecurityManager.create_rsa_checksum(self._c.rsa_public_key, input_string)
-        return await self._c.request(  # type: ignore[return-value]
+        return await self._c.request(  # type: ignore[no-any-return]
             "POST", _DISBURSE_PATH, json=payload, base_url=self._c.disburse_url, skip_checksum=True
         )
 
@@ -240,15 +240,8 @@ class AsyncDisbursementService:
             "accountNumber": account_number,
             "currency": currency,
         }
-        _source = source or {
-            "countryCode": "TZ",
-            "fullName": "",
-            "bankName": "",
-            "accountNumber": "",
-            "currency": currency,
-        }
         return await self.disburse(
-            source=_source,
+            source=source,
             destination=destination,
             amount=amount,
             currency=currency,

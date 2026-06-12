@@ -46,7 +46,7 @@ class LookupService:
             params["externalId"] = external_id
         if bank_name:
             params["bankName"] = bank_name
-        return self._c.request(  # type: ignore[return-value]
+        return self._c.request(  # type: ignore[no-any-return]
             "GET", _STATUS_PATH, params=params, base_url=self._c.disburse_url, skip_checksum=True
         )
 
@@ -61,7 +61,7 @@ class LookupService:
             Dict with account holder details (firstName, lastName, accountNumber, etc.).
         """
         payload = {"bankName": bank_name, "accountNumber": account_number}
-        return self._c.request(  # type: ignore[return-value]
+        return self._c.request(  # type: ignore[no-any-return]
             "POST", _NAME_LOOKUP_PATH, json=payload, base_url=self._c.disburse_url, skip_checksum=True
         )
 
@@ -94,13 +94,13 @@ class AsyncLookupService:
             params["externalId"] = external_id
         if bank_name:
             params["bankName"] = bank_name
-        return await self._c.request(  # type: ignore[return-value]
+        return await self._c.request(  # type: ignore[no-any-return]
             "GET", _STATUS_PATH, params=params, base_url=self._c.disburse_url, skip_checksum=True
         )
 
     async def name_lookup(self, bank_name: str, account_number: str) -> dict[str, Any]:
         """Resolve the account holder name for a bank or mobile-money account."""
         payload = {"bankName": bank_name, "accountNumber": account_number}
-        return await self._c.request(  # type: ignore[return-value]
+        return await self._c.request(  # type: ignore[no-any-return]
             "POST", _NAME_LOOKUP_PATH, json=payload, base_url=self._c.disburse_url, skip_checksum=True
         )

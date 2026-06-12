@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import threading
 import time
 from datetime import datetime, timezone
@@ -34,8 +35,11 @@ _RETRY_STATUSES = {500, 502, 503, 504}
 def _safe_json(response: httpx.Response) -> dict[str, Any]:
     try:
         return response.json()  # type: ignore[no-any-return]
-    except Exception:
-        return {"message": response.text}
+    except (json.JSONDecodeError, ValueError):
+        try:
+            return {"message": response.text}
+        except Exception:
+            return {"message": "<unreadable response>"}
 
 
 def _backoff(attempt: int) -> None:
@@ -270,6 +274,10 @@ class AzamPayClient:
     def close(self) -> None:
         """Close the underlying HTTP connection pool."""
         self._http.close()
+
+    def __repr__(self) -> str:
+        env = "sandbox" if self.sandbox else "production"
+        return f"{type(self).__name__}(app_name={self.app_name!r}, env={env!r})"
 
     def __enter__(self) -> "AzamPayClient":
         return self

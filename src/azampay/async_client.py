@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import time
+from datetime import datetime, timezone
 from typing import Any
 
 import httpx
@@ -33,8 +35,11 @@ _RETRY_STATUSES = {500, 502, 503, 504}
 def _safe_json(response: httpx.Response) -> dict[str, Any]:
     try:
         return response.json()  # type: ignore[no-any-return]
-    except Exception:
-        return {"message": response.text}
+    except (json.JSONDecodeError, ValueError):
+        try:
+            return {"message": response.text}
+        except Exception:
+            return {"message": "<unreadable response>"}
 
 
 async def _async_backoff(attempt: int) -> None:
@@ -156,7 +161,16 @@ class AsyncAzamPayClient:
 
                 token = body["data"]["accessToken"]
                 self._token = f"Bearer {token}"
-                self._token_expires_at = time.monotonic() + _TOKEN_TTL
+                expire_str = (body.get("data") or {}).get("expire")
+                if expire_str:
+                    try:
+                        expire_dt = datetime.fromisoformat(expire_str.replace("Z", "+00:00"))
+                        ttl = (expire_dt - datetime.now(timezone.utc)).total_seconds() - 60
+                        self._token_expires_at = time.monotonic() + max(ttl, 0)
+                    except (ValueError, TypeError):
+                        self._token_expires_at = time.monotonic() + _TOKEN_TTL
+                else:
+                    self._token_expires_at = time.monotonic() + _TOKEN_TTL
                 return self._token
 
             raise (
@@ -264,6 +278,10 @@ class AsyncAzamPayClient:
     async def close(self) -> None:
         """Close the underlying HTTP connection pool."""
         await self._http.aclose()
+
+    def __repr__(self) -> str:
+        env = "sandbox" if self.sandbox else "production"
+        return f"{type(self).__name__}(app_name={self.app_name!r}, env={env!r})"
 
     async def __aenter__(self) -> "AsyncAzamPayClient":
         return self
