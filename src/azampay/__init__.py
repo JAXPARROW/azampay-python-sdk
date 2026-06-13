@@ -2,6 +2,7 @@
 
 from ._version import __version__
 from .async_client import AsyncAzamPayClient
+from .bill_pay import BillPayValidator
 from .client import AzamPayClient
 from .exceptions import (
     AzamPayError,
@@ -80,6 +81,7 @@ __all__ = [
     # Utilities
     "SecurityManager",
     "WebhookValidator",
+    "BillPayValidator",
     # Exceptions
     "AzamPayError",
     "AuthenticationError",

@@ -5,7 +5,7 @@ import respx
 from httpx import Response
 
 from azampay import AzamPay, NotFoundError
-from tests.conftest import SANDBOX_AUTH, SANDBOX_BASE, SANDBOX_DISBURSE
+from tests.conftest import SANDBOX_AUTH, SANDBOX_DISBURSE
 
 AUTH_URL = f"{SANDBOX_AUTH}/AppRegistration/GenerateToken"
 STATUS_URL = f"{SANDBOX_DISBURSE}/api/v1/azampay/transactionstatus"
