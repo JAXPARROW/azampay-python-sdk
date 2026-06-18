@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
 from typing import Any
 
 from ..security import SecurityManager
@@ -108,14 +107,13 @@ def disburse_payload(
     transfer_type: str,
     rsa_public_key: str | None,
 ) -> dict[str, Any]:
-    epoch_date = int(datetime.now(timezone.utc).timestamp())
     payload: dict[str, Any] = {
         "source": source,
         "destination": destination,
         "transferDetails": {
             "type": transfer_type,
-            "amount": float(amount),
-            "dateInEpoch": epoch_date,
+            "amount": amount,
+            "currency": currency,
         },
         "externalReferenceId": reference_id,
     }
@@ -125,7 +123,7 @@ def disburse_payload(
         src_acc = source.get("accountNumber", "")
         dst_acc = destination.get("accountNumber", "")
         currency_val = source.get("currency", currency)
-        input_string = f"{src_acc}{dst_acc}{currency_val}{amount}{epoch_date}{reference_id}"
+        input_string = f"{src_acc}{dst_acc}{currency_val}{amount}{reference_id}"
         payload["checksum"] = SecurityManager.create_rsa_checksum(rsa_public_key, input_string)
     return payload
 

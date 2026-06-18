@@ -25,7 +25,7 @@ class DisbursementService:
         reference_id: str,
         currency: str = "TZS",
         remarks: str | None = None,
-        transfer_type: str = "INTERNAL",
+        transfer_type: str = "USSD",
     ) -> dict[str, Any]:
         """Send a disbursement to a bank account or mobile wallet.
 
@@ -127,7 +127,7 @@ class AsyncDisbursementService:
         reference_id: str,
         currency: str = "TZS",
         remarks: str | None = None,
-        transfer_type: str = "INTERNAL",
+        transfer_type: str = "USSD",
     ) -> dict[str, Any]:
         """Send a disbursement to a bank account or mobile wallet."""
         payload = disburse_payload(

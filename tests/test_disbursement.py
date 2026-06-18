@@ -32,10 +32,10 @@ def test_disburse_raw_payload(client: AzamPay) -> None:
     mock = respx.post(DISBURSE_URL).mock(return_value=_disburse_ok())
 
     dest = {"countryCode": "TZ", "fullName": "John", "bankName": "Airtel", "accountNumber": "0741234567", "currency": "TZS"}
-    client.disbursement.disburse(source=_SOURCE, destination=dest, amount="5000", reference_id="ref-01")
+    client.disbursement.disburse(source=_SOURCE, destination=dest, amount="500", reference_id="ref-01")
 
     body = json.loads(mock.calls[0].request.content)
-    assert body["transferDetails"]["amount"] == 5000.0
+    assert body["transferDetails"]["amount"] == "500"
     assert body["source"]["accountNumber"] == "111"
     assert body["destination"]["accountNumber"] == "0741234567"
     assert body["externalReferenceId"] == "ref-01"
